@@ -3,6 +3,7 @@
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class Code128Library{
     static HashMap<String,String> code128A = new HashMap<String,String>();
@@ -392,6 +393,44 @@ public class Code128Library{
         if(checksum.length()==1)checksum="0"+String.valueOf(checksum.charAt(0));
         String pattern = Code128Library.code128C.get(checksum);
         return pattern;
+    }
+    public static String getSymbolFromPattern(char type,String pattern){
+        Code128Library library = new Code128Library(); 
+        String symbol=null;
+        switch (type) {
+            case 'A':
+                for(Map.Entry<String,String> entry:library.code128A.entrySet()){
+                    if(entry.getValue().equals(pattern)){
+                        symbol = entry.getKey();
+                        break;
+                    }
+                }
+                return symbol;
+
+            case 'B':
+                for(Map.Entry<String,String> entry:library.code128B.entrySet()){
+                    if(entry.getValue().equals(pattern)){
+                        symbol = entry.getKey();
+                        break;
+                    }
+                }
+                return symbol;
+
+            case 'C':
+                for(Map.Entry<String,String> entry:library.code128C.entrySet()){
+                    if(entry.getValue().equals(pattern)){
+                        symbol = entry.getKey();
+                        break;
+                    }
+                }
+                
+                return symbol;
+        
+            default:
+                break;
+        }
+        
+        return symbol;
     }
 }
 

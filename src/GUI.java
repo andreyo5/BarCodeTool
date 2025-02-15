@@ -2,6 +2,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -16,8 +17,11 @@ import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -179,8 +183,8 @@ public class GUI {
         }else{
             int zoom = 0;
             System.out.println("path:"+path+"\ntext:"+text);
-            JLabel BarCodeIMG_Label = new JLabel(setImage(GUI.path,zoom));
-            JLabel Text_Label = new JLabel(GUI.text);
+            JLabel BarCodeIMG_Label = new JLabel(setImage(path,zoom));
+            JLabel Text_Label = new JLabel(text);
             Text_Label.setFont(new Font("TimesRoman",Font.ITALIC, 22));
 
             JPanel MainPanel = new JPanel();
@@ -272,20 +276,54 @@ public class GUI {
             
         });
 
+        btnDecode.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String filePathField="";
+                JFileChooser fileChooser = new JFileChooser();
+                int returnValue = fileChooser.showOpenDialog(new JFrame());
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    File selectedFile = fileChooser.getSelectedFile();
+                    filePathField = selectedFile.getAbsolutePath();
+                }
+
+                if (filePathField.isEmpty()) {
+                    JOptionPane.showMessageDialog(new JFrame(), "Пожалуйста, выберите файл.");
+                    return;
+                }
+                try {
+                    DataBase db = new DataBase();
+                    String result = Code128Decoder.decodeBarcode(filePathField);
+                    String result_bincode = Code128Decoder.finishedbincode;
+                    db.WriteCodeAndPathToDB(result_bincode,result,filePathField);
+
+                    GUI.Barcode_View = BarCode_Viewer_Panel(filePathField,result);
+                    GUI.BarCode_List_Panel = List_Of_BarCodes();
+                    Validator();
+
+                } catch (IOException | SQLException ex) {
+                    ex.getLocalizedMessage();
+                    JOptionPane.showMessageDialog(new JFrame(), "Ошибка при чтении файла.");
+                }
+            }
+            
+        });
+
         // Добавление контента в панель
-        JPanel MainPanel = new JPanel();
-        MainPanel.setLayout(new BorderLayout());
-        MainPanel.add(list_scroller,BorderLayout.WEST);
-        MainPanel.add(textField,BorderLayout.CENTER);
-        MainPanel.add(selectedBarCodeLabel,BorderLayout.NORTH);
+        JPanel IncodePanel = new JPanel();
+
+        IncodePanel.setLayout(new BorderLayout());
+        IncodePanel.add(list_scroller,BorderLayout.WEST);
+        IncodePanel.add(textField,BorderLayout.CENTER);
+        IncodePanel.add(selectedBarCodeLabel,BorderLayout.NORTH);
 
         JPanel ButtonsPanel = new JPanel();
         ButtonsPanel.setLayout(new BorderLayout());
         ButtonsPanel.add(btnIncode,BorderLayout.LINE_START);
         ButtonsPanel.add(btnDecode,BorderLayout.LINE_END);
 
-        MainPanel.add(ButtonsPanel,BorderLayout.SOUTH);
+        IncodePanel.add(ButtonsPanel,BorderLayout.SOUTH);
 
-        return MainPanel;
+        return IncodePanel;
     }
 }
