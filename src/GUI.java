@@ -30,6 +30,13 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import Code128.Code128Coder;
+import Code128.Code128Decoder;
+import QRCode.QRCodeCoder;
+//import QRCode.QRCodeDecoder;
+// import Aztec.AztecCoder;
+// import Aztec.AztecDecoder;
+
 public class GUI {
     //метод для составления готовой картинки
     public static JSplitPane MainPanel; // главный контейнер
@@ -265,7 +272,12 @@ public class GUI {
                         break;
                 
                     case "QR-CODE":
-                        // QR-code perfrom
+                        QRCodeCoder qr = new QRCodeCoder();
+
+                        String a = qr.IncodeToQR(input_text);
+                        
+                        System.out.println(a);
+
                         break;
 
                     case "Aztec":
