@@ -1,6 +1,5 @@
 package Code128;
 
-//класс в котором отрисовывается штрих код(пока что только code128)
 import java.awt.image.*;
 import java.io.File;
 
@@ -8,9 +7,11 @@ import javax.imageio.ImageIO;
 
 public class Code128Coder{
     public static String last_barcode;
+    public static String bincode;
+
     static int width_last_barcode;
     static int height_last_barcode;
-    public static String bincode;
+    
 
     static void saveBarCode(BufferedImage bufferedImage){
         try {
@@ -46,8 +47,6 @@ public class Code128Coder{
                     bufferedImage.setRGB(x,y,0xFFFFFF);
                 }
             
-            width_last_barcode=width;
-            height_last_barcode=height;
             bincode = code;
             
 

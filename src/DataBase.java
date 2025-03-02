@@ -15,10 +15,12 @@ public class DataBase{
 
     BufferedImage[] imBuff = new BufferedImage[0];
     String[] codes = new String[0];
+    int[] types = new int[0];
 
     public DataBase() throws SQLException{
         imBuff = new BufferedImage[getCount()];
         codes = new String[getCount()];
+        types = new int[getCount()];
     }
 
     public Connection ConnectToDB() throws SQLException{
@@ -32,19 +34,20 @@ public class DataBase{
         
         return conn;
     }
-    public void WriteCodeAndPathToDB(String bincode,String text,String path) throws SQLException, IOException{
+    public void WriteCodeAndPathToDB(int type,String bincode,String text,String path) throws SQLException, IOException{
         Connection conn = this.ConnectToDB();
 
         try {
             File imageFile = new File(path);
-            PreparedStatement pstmt = conn.prepareStatement("INSERT INTO BarCodes(bincode,text,blobcode) VALUES(?,?,?)");  
+            PreparedStatement pstmt = conn.prepareStatement("INSERT INTO BarCodes(bincode,type,text,blobcode) VALUES(?,?,?,?)");  
 
             pstmt.setString(1, bincode);
-            pstmt.setString(2, text);
+            pstmt.setInt(2, type);
+            pstmt.setString(3, text);
 
             FileInputStream fis = new FileInputStream(imageFile);
 
-            pstmt.setBinaryStream(3, fis, (int) imageFile.length());
+            pstmt.setBinaryStream(4, fis, (int) imageFile.length());
             pstmt.executeUpdate();
 
             pstmt.close();
@@ -70,14 +73,15 @@ public class DataBase{
         Connection conn = this.ConnectToDB();
 
         try {
-            PreparedStatement pstmt = conn.prepareStatement("SELECT text,blobcode FROM BarCodes");
+            PreparedStatement pstmt = conn.prepareStatement("SELECT text,type,blobcode FROM BarCodes");
             ResultSet rs = pstmt.executeQuery();
             int i =0;
             while(rs.next()){
                 String code = rs.getString("text");
+                int type = rs.getInt("type");
                 InputStream inputStream = rs.getBinaryStream("blobcode");
-                
                 codes[i]=code;
+                types[i]=type;
 
                 BufferedImage buff = new BufferedImage(250,50, BufferedImage.TYPE_INT_RGB);
                 buff = ImageIO.read(inputStream);

@@ -102,7 +102,7 @@ public class GUI {
     }
     public static ImageIcon setImage(BufferedImage bimg){
         try {
-            Image image = bimg.getScaledInstance(bimg.getWidth(),50,Image.SCALE_DEFAULT);
+            Image image = bimg.getScaledInstance(bimg.getWidth()+150,bimg.getHeight()+150,Image.SCALE_DEFAULT);
             ImageIcon icon = new ImageIcon(image);
             return icon;
         } catch (Exception e) {
@@ -140,7 +140,7 @@ public class GUI {
                 zoomBtn.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        GUI.Barcode_View = BarCode_Viewer_Panel(DB.imBuff[j],DB.codes[j]);
+                        GUI.Barcode_View = BarCode_Viewer_Panel(DB.types[j],DB.imBuff[j],DB.codes[j]);
                         Validator();
                     }
                 });
@@ -156,8 +156,24 @@ public class GUI {
                     }
                 });
 
-                row.setLayout(new GridLayout(1,4, 15, 15));
+                row.setLayout(new GridLayout(1,5, 15, 15));
 
+                String a = "";
+                switch (DB.types[i]) {
+                    case 1:
+                        a = "Code128";
+                        break;
+                    case 2:
+                        a="QR-Code";
+                        break;
+                    case 3:
+                        a="Aztec";
+                        break;
+                    default:
+                        a="Undefined";
+                        break;
+                }
+                row.add(new JLabel(a));
                 row.add(new JLabel(setImage(DB.imBuff[i])));
                 row.add(new JLabel(DB.codes[i]));
                 row.add(zoomBtn);
@@ -202,7 +218,7 @@ public class GUI {
             return MainPanel; 
         }   
     }
-    private JPanel BarCode_Viewer_Panel(BufferedImage img,String text){
+    private JPanel BarCode_Viewer_Panel(int type,BufferedImage img,String text){
 
         JLabel BarCodeIMG_Label = new JLabel(setImage(img));
         JLabel Text_Label = new JLabel(text);
@@ -251,6 +267,7 @@ public class GUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String input_text = textField.getText();
+                int type=0;
                 switch (selectedBarCode) {
                     case "code128":
                         Code128Coder.code128(input_text);
@@ -258,10 +275,11 @@ public class GUI {
                         GUI.path = Code128Coder.last_barcode;
                         GUI.bincode = Code128Coder.bincode;
                         GUI.text = input_text;
+                        type=1;
 
                         try {
                             DataBase DB = new DataBase();
-                            DB.WriteCodeAndPathToDB(bincode, input_text, path);
+                            DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
                         } catch (SQLException|IOException e1) {
                             e1.printStackTrace();
                         }
@@ -273,10 +291,23 @@ public class GUI {
                 
                     case "QR-CODE":
                         QRCodeCoder qr = new QRCodeCoder();
+                        GUI.bincode = qr.IncodeToQR(input_text);
+                        GUI.path = qr.last_barcode;
+                        GUI.text = input_text;
+                        type=2;
 
-                        String a = qr.IncodeToQR(input_text);
+                        try {
+                            DataBase DB = new DataBase();
+                            DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
+                        } catch (SQLException|IOException e1) {
+                            e1.printStackTrace();
+                        }
                         
-                        System.out.println(a);
+                        System.out.println(bincode);
+
+                        GUI.BarCode_List_Panel = List_Of_BarCodes();
+                        GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
+                        Validator();
 
                         break;
 
@@ -307,7 +338,7 @@ public class GUI {
                     DataBase db = new DataBase();
                     String result = Code128Decoder.decodeBarcode(filePathField);
                     String result_bincode = Code128Decoder.finishedbincode;
-                    db.WriteCodeAndPathToDB(result_bincode,result,filePathField);
+                    db.WriteCodeAndPathToDB(1,result_bincode,result,filePathField);
 
                     GUI.Barcode_View = BarCode_Viewer_Panel(filePathField,result);
                     GUI.BarCode_List_Panel = List_Of_BarCodes();
