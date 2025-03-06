@@ -17,6 +17,7 @@ public class QRCodeLibrary {
     public String[][] search_pattern;
     public String[][] aligment_pattern;
     
+    
     public int version=0;
 
     public QRCodeLibrary(){
@@ -28,7 +29,7 @@ public class QRCodeLibrary {
             128,224,352,512,688,864,992,1232,1456,1728, // индекс == версия кодировки
             2032,2320,2672,2920,3320,3624,4056,4504,5016,5352,
             5712,6256,6880,7312,8000,8496,9024,9544,10136,10984,
-            1164012328,13048,13800,14496,15312,15936,16816,17728,18672
+            11640,12328,13048,13800,14496,15312,15936,16816,17728,18672
         };
 
         blocksInfoAmount_M = new int[]{0,   // индекс == количество блоков
@@ -43,7 +44,7 @@ public class QRCodeLibrary {
             26,28,28,28,28,28,28,28,28,28,
             28,28,28,28,28,28,28,28,28,28
         };
-        generatingPolynomials_M = new int[][]{ // первое значение каждой строки - коректирующий бит, последующие - части многочлена
+        generatingPolynomials_M = new int[][]{ // первое значение каждой строки - количество байтов корекции, последующие - части многочлена
             {7,87,229,146,149,238,102,21},
             {10,251,67,46,61,118,70,64,94,32,45},
             {13,74,152,176,100,86,100,106,104,130,218,206,140,78},
@@ -78,8 +79,8 @@ public class QRCodeLibrary {
             44,88,176,125,250,233,207,131,27,54,108,216,173,71,142,1
         };
 
-        inverseGaloisField = new int[]{0,
-            0,1,25,2,50,26,198,3,223,51,238,27,104,199,75,
+        inverseGaloisField = new int[]{
+            0,0,1,25,2,50,26,198,3,223,51,238,27,104,199,75,
             4,100,224,14,52,141,239,129,28,193,105,248,200,8,76,113,
             5,138,101,47,225,36,15,33,53,147,142,218,240,18,130,69,
             29,181,194,125,106,39,249,185,201,154,9,120,77,228,114,166,
@@ -232,7 +233,6 @@ public class QRCodeLibrary {
 
     public int getVersion(int length){
         int index =0;
-        length*=8;
         for(int i = 0;i<maxInfoAmount_M.length;i++){
             if(length<=maxInfoAmount_M[i]){
                 index=i;
@@ -244,13 +244,7 @@ public class QRCodeLibrary {
     }
 
     public int getSize(int version){
-        int index =0;
-        for(int i = 0;i<locationsOfAligmentPatterns.length;i++){
-            if(locationsOfAligmentPatterns[i][0]==version){
-                index = locationsOfAligmentPatterns[i][locationsOfAligmentPatterns[i].length-1]+7;
-                break;
-            }
-        }
+        int index =17+version*4;        
         return index;
     }
     public int[] getLocationsOfAligmentPatterns(int version){
@@ -291,30 +285,102 @@ public class QRCodeLibrary {
         return a;
     }
 
-    public int[] generateCorrectionBytes(int[] currentBlock, int correctionBytesCount) {
-        int maxLength = Math.max(currentBlock.length, correctionBytesCount);
-        int[] preparedArray = new int[maxLength];
-        System.arraycopy(currentBlock, 0, preparedArray, 0, currentBlock.length);
-        
-        for (int i = 0; i < currentBlock.length; i++) {
-            int A = preparedArray[0];
-            System.arraycopy(preparedArray, 1, preparedArray, 0, preparedArray.length - 1);
-            preparedArray[preparedArray.length - 1] = 0;
+    public int setMask(int version,int X,int Y){
+        int a;
+
+        switch (version) {
+            case 0:
+                a=(X+Y) % 2;
+            break;
+            case 1:
+                a=Y % 2;
+                
+            break;
+
+            case 2:
+                a=X % 3;
+                
+            break;
+
+            case 3:
+                a=(X + Y) % 3;
+                
+            break;
+
+            case 4:
+                a=(X/3 + Y/2) % 2;
+                
+            break;
+
+            case 5:
+                a=(X*Y) % 2 + (X*Y) % 3;
+                
+            break;
+
+            case 6:
+                a=((X*Y) % 2 + (X*Y) % 3) % 2;
+                
+            break;
+
+            case 7:
+                a = ((X*Y) % 3 + (X+Y) % 2) % 2;
+            break;
+
+            default:
+                a=0;
+            break;
+        }
+        //System.out.println("X "+X+" Y "+Y+"="+a);
+        return a;
+    }
+
+    
+    public int[] ReedSolomon(int[] currentBlock, int correctionBytesCount) {
+        // Исходный блок данных
+        int[] dataBlock = currentBlock;
+        int[] GEN_POLY = getPolynomials_M(correctionBytesCount);;
+        int nCorrections = 10;
+
+        // Подготовка массива
+        int maxLen = Math.max(dataBlock.length, nCorrections);
+        int[] array = new int[maxLen];
+        System.arraycopy(dataBlock, 0, array, 0, dataBlock.length);
+        // Оставшиеся элементы уже 0 по умолчанию в Java
+
+        // Основной цикл
+        for (int i = 0; i < dataBlock.length; i++) {
+            // Берем первый элемент и сдвигаем массив
+            int A = array[0];
+            System.arraycopy(array, 1, array, 0, array.length - 1);
+            array[array.length - 1] = 0;
+
+            // Если A = 0, пропускаем итерацию
             if (A == 0) {
                 continue;
             }
-            int B = inverseGaloisField[A];
 
-            for (int j = 0; j < correctionBytesCount; j++) {
-                int V = GaloisField[j];
-                V += B;
+            // Находим B из таблицы 8 (EXP_TABLE)
+            int B = inverseGaloisField[A % inverseGaloisField.length]; // Ограничение по длине таблицы
 
-                if (V > 254) {
-                    V %= 255;
-                }
-                preparedArray[j] ^= V;
+        // Обработка N первых элементов
+        for (int j = 0; j < nCorrections; j++) {
+            // Считаем V
+            int V = GEN_POLY[j] + B;
+
+            // Если V > 254, берем остаток от деления на 255
+            if (V > 254) {
+                V = V % 255;
             }
+
+            // Находим значение из таблицы 7 (LOG_TABLE) и делаем XOR
+            int table7Value = GaloisField[V % GaloisField.length]; // Ограничение по длине таблицы
+            array[j] = array[j] ^ table7Value; // Побитовое XOR
         }
-        return Arrays.copyOf(preparedArray, correctionBytesCount);
-    }
+        }
+
+    // Результат - первые N байтов массива
+    int[] correctionBytes = Arrays.copyOfRange(array, 0, nCorrections);
+    
+    return correctionBytes;
+}
 }

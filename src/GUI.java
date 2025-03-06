@@ -32,6 +32,7 @@ import javax.swing.event.ListSelectionListener;
 
 import Code128.Code128Coder;
 import Code128.Code128Decoder;
+import QRCode.QRCodeBarCodeMaker;
 import QRCode.QRCodeCoder;
 //import QRCode.QRCodeDecoder;
 // import Aztec.AztecCoder;

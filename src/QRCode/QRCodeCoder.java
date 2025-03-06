@@ -1,572 +1,202 @@
 package QRCode;
 
-import java.awt.image.*;
-import java.io.File;
-
-import javax.imageio.ImageIO;
+import java.nio.charset.StandardCharsets;
 
 public class QRCodeCoder {
 
-//  ------------------------------------   
-// 
-//  https://habr.com/ru/articles/172525/
-//  https://habr.com/ru/articles/172525/
-//  https://habr.com/ru/articles/172525/
-// 
-//  ------------------------------------
-
-    private QRCodeLibrary qr = new QRCodeLibrary();
-
+    QRCodeBarCodeMaker qr_maker = new QRCodeBarCodeMaker();
+    QRCodeLibrary qr_Library = new QRCodeLibrary();
+    private int version;
     public String last_barcode;
-    public String bincode;
-
-    static int width_last_barcode;
-    static int height_last_barcode;
-    
 
     public String IncodeToQR(String input_text){
-        String result = "";
-        String bit_sequence = "";// последовательность из бит введённой информации
-        String amount_of_data_field = "";//длина поля количества данных тип+длина
-        int length=0;// длина введённой информации
-    
+        String bit_sequence = ByteIncode(input_text);
+        bit_sequence = AddServiceInfo(bit_sequence,input_text);
 
-        // Определение типа
-        String type="";
-        try {//0001 - цифровой тип(только цифры);
-            int input = Integer.parseInt(input_text);
-            type = "0001";
+        String[] array_bit_sequence = FillingUp(bit_sequence);
+        int[][] byte_blocks = GenerateBlocks(array_bit_sequence);
 
 
-        } catch (Exception e) {// 0010-Буквенно-Цифровой(цифры и буквы);
-            type = "0010";
+        qr_maker.makeBarcode(CombiningBlocks(byte_blocks),version);
+
+        last_barcode=qr_maker.last_barcode;
+
+        return bit_sequence;
+        
+    }
+
+    private String ByteIncode(String input_text){
+        String bit_sequence = "";
+        byte[] bytes = input_text.getBytes(StandardCharsets.UTF_8);
+        for (byte b:bytes) {
+            String a = dec_to_bin(Byte.toString(b));
+            while(a.length()!=8){
+                a="0"+a;
+            }
+            bit_sequence+=a;
+            
         }
 
-        //                      Версия 1–9	    Версия 10–26	Версия 27–40
-        // Цифровое	            10 бит	        12 бит	        14 бит
-        // Буквенно-цифровое	9 бит	        11 бит	        13 бит
-        // Побайтовое	        8 бит	        16 бит	        16 бит
+        version = qr_Library.getVersion(bit_sequence.length());
+        version = (version >= 10)?qr_Library.getVersion(bit_sequence.length()+20):qr_Library.getVersion(bit_sequence.length()+12);
 
-        if(type=="0001"){ // цифра
-            length = input_text.length();
-            bit_sequence = NumericCoding(input_text);
+        return bit_sequence;
+    }
 
-            if(qr.getVersion(length)>=1 & qr.getVersion(length)<=9){
-                String field=dec_to_bin(String.valueOf(length));
-                while(field.length()!=10){
+    private String AddServiceInfo(String bit_sequence,String input_text){
+        String field="";
+        if(version >=1 & version <=9){
+            field = dec_to_bin(String.valueOf(input_text.length()));
+            while(field.length()!=8){
+                field="0"+field;
+            }
+            field = "0100"+field;
+        }else{
+            if(version >=10 & version <=40){
+                field = dec_to_bin(String.valueOf(input_text.length()));
+                while(field.length()!=16){
                     field="0"+field;
                 }
-                amount_of_data_field=type+field;
-
-            }else{
-                if(qr.getVersion(length)>=10 & qr.getVersion(length)<=26){
-
-                    String field=dec_to_bin(String.valueOf(length));
-                    while(field.length()!=12){
-                        field="0"+field;
-                    }
-                    amount_of_data_field=type+field;
-
-                }else{
-                    if(qr.getVersion(length)>=27 & qr.getVersion(length)<=40){
-                        
-                        String field=dec_to_bin(String.valueOf(length));
-                        while(field.length()!=14){
-                            field="0"+field;
-                        }
-                        amount_of_data_field=type+field;
-
-                    }
-    
-                }
-            }
-
-        }else{
-            if(type=="0010"){ // буква
-                length = input_text.length();
-                bit_sequence = LetterNumericCoding(input_text);
-    
-                if(qr.getVersion(length)>=1 & qr.getVersion(length)<=9){
-                    String field=dec_to_bin(String.valueOf(length));
-                    while(field.length()!=9){
-                        field="0"+field;
-                    }
-                    amount_of_data_field=type+field;
-    
-                }else{
-                    if(qr.getVersion(length)>=10 & qr.getVersion(length)<=26){
-    
-                        String field=dec_to_bin(String.valueOf(length));
-                        while(field.length()!=11){
-                            field="0"+field;
-                        }
-                        amount_of_data_field=type+field;
-    
-                    }else{
-                        if(qr.getVersion(length)>=27 & qr.getVersion(length)<=40){
-                            
-                            String field=dec_to_bin(String.valueOf(length));
-                            while(field.length()!=13){
-                                field="0"+field;
-                            }
-                            amount_of_data_field=type+field;
-    
-                        }
-        
-                    }
-                }
-    
+                field = "0100"+field;
             }
         }
-        
-        bit_sequence=amount_of_data_field+bit_sequence;
-        System.out.println("lenght:"+length);
-        System.out.println("version:"+qr.version);
-        System.out.println("amount_of_data_field:"+amount_of_data_field);
-        System.out.println("before 0++ bit_sequence:"+bit_sequence+" "+bit_sequence.length());
+        return field+bit_sequence;
+    }
 
-        while(bit_sequence.length()%8!=0){ // подстановка нулей под размер
+    private String[] FillingUp(String bit_sequence){
+        while (bit_sequence.length()%8!=0) {
             bit_sequence+="0";
         }
-
-        System.out.println("after 0++ bit_sequence:"+bit_sequence+" "+bit_sequence.length());
-        System.out.println("before a_temp++ bit_sequence:"+bit_sequence+" "+bit_sequence.length());
-
-        int a_temp=1;
-        do{
-            if(a_temp==1)bit_sequence+="11101100";else{ // поочердное добавление "пустышек?"
+        int d=0;
+        while(bit_sequence.length()<qr_Library.maxInfoAmount_M[version]){
+            if(d==0){
+                bit_sequence+="11101100";
+                d++;
+            }else{
                 bit_sequence+="00010001";
-                a_temp=0;
+                d=0;
             }
-            a_temp++;
-        }while(bit_sequence.length()<qr.maxInfoAmount_M[qr.version]);
-        a_temp=0;
-
-        System.out.println("after a_temp++ bit_sequence:"+bit_sequence+" "+bit_sequence.length());
-
-        int[] amount_of_info_in_blocks = new int[qr.blocksInfoAmount_M[qr.version]]; // длина блоков (кол-во байтов в одном блоке)
-        int byte_amount = bit_sequence.length()/8; //количество байтов
-        int amount_of_additional_blocks = byte_amount%qr.blocksInfoAmount_M[qr.version];  // кол-во доп блоков
-        System.out.println("byte_amount:"+byte_amount);
-        for(int i =qr.blocksInfoAmount_M[qr.version];i>0;i--){//сборка размеров блоков учитывай дополнительные блоки
-            int a=byte_amount/qr.blocksInfoAmount_M[qr.version];
-            if(amount_of_additional_blocks!=0){a++;amount_of_additional_blocks--;};
-                
-            amount_of_info_in_blocks[i-1]=a;
-            System.out.println(i-1+"-block: "+a);
-            a=0;
         }
 
-        // String[][] byteBlocks = new String[line][colmn]
+        System.out.println("Version:"+version);
+        System.out.println("Final bit sequence:"+bit_sequence+" "+bit_sequence.length());
 
-        int LINE = qr.blocksInfoAmount_M[qr.version]; // кол-во линий для массива с блоками байтов 
-        int COLMN = amount_of_info_in_blocks[amount_of_info_in_blocks.length-1]; // кол-во стоблцов
+        String[] a = new String[bit_sequence.length()/8];
+        for (int i = 0; i < a.length; i++) {
+            a[i] = bit_sequence.substring(i*8, (i+1)*8);
+        }
+        return a;
+    }
 
-        int[][] byteBlocks = new int[LINE][COLMN]; // массив с блоками  байтов
+    private int[][] GenerateBlocks(String[] bit_sequence){
+        int whole_amount_of_blocks = qr_Library.blocksInfoAmount_M[version];
+        int amount_of_blocks = bit_sequence.length/whole_amount_of_blocks;
+        int amount_of_additional_blocks = bit_sequence.length%whole_amount_of_blocks;
+        int[] maximum_info_in_blocks=new int[whole_amount_of_blocks];
 
-        String[] bit_blocks = new String[bit_sequence.length()/8]; // разбиение последовательности битов на отдельные комбинации битов(по 8)
-
-        int current_bit;
-        current_bit=0;
-
-        for(int i =0;i<bit_blocks.length;i++){
-            String bitline=bit_sequence.substring(current_bit,current_bit+8);
-            bit_blocks[i]=bitline;
-            current_bit+=8;
+        for(int i = maximum_info_in_blocks.length-1;i>-1;i--){
+            int a = amount_of_blocks+amount_of_additional_blocks;
+            if(amount_of_additional_blocks>0)amount_of_additional_blocks--;
+            maximum_info_in_blocks[i]=a;
         }
 
-        current_bit=0;
+        for (int k: maximum_info_in_blocks) {
+            System.out.println("maximum_info_in_blocks:"+k);
+        }
 
-        for(int i =0;i<LINE;i++){      //заполнение блоков байтами
-            for (int j = 0; j < COLMN; j++) {
-                byteBlocks[i][j] = Integer.parseInt(bit_to_byte(bit_blocks[j+current_bit]));
-
+        int[][] byte_blocks = new int[whole_amount_of_blocks][maximum_info_in_blocks[maximum_info_in_blocks.length-1]];
+        int a=0;
+        for(int i=0;i<whole_amount_of_blocks;i++){
+            for(int j=0;j<maximum_info_in_blocks[i];j++){
+                byte_blocks[i][j] = Integer.parseInt(bin_to_dec(bit_sequence[j+a]));
             }
-            current_bit+=COLMN-1;
-            
+            a+=maximum_info_in_blocks[i];
         }
+
+        for(int i = 0;i<byte_blocks.length;i++){
+            System.out.print("byte_block "+i+":");
+            for(int j=0;j<byte_blocks[i].length;j++){
+                System.out.print(" "+byte_blocks[i][j]);
+            }
+            System.out.println();
+        }
+
+        return byte_blocks;
+    }
+
+    private String CombiningBlocks(int[][] byte_block){
+        String byte_code="";
+        int BYTE_BLOCKS = byte_block.length;
+        int BYTE_NUMBERS = byte_block[BYTE_BLOCKS-1].length;
+
+        int[][] blocks_of_correction = new int[BYTE_BLOCKS][qr_Library.bytesOfCorrection_M[version]];
+
+        for (int i = 0; i < BYTE_NUMBERS; i++) {
+            for(int j = 0;j<BYTE_BLOCKS;j++){
+                byte_code+=byte_block[j][i];
+                byte_code+=";";
+            }
+        }
+
         
-        for(int i =0;i<LINE;i++){
-            System.out.println("block:"+i);
-            for (int j = 0; j < COLMN; j++) {
-                System.out.print(byteBlocks[i][j]+";");
-            }
-            System.out.println("");
+        for (int i = 0; i < blocks_of_correction.length; i++) {
             
-        } // вывод
-
-
-        int amount_of_bytes_of_correction = qr.bytesOfCorrection_M[qr.version]; // кол-во байтов корекции
-        //int[] generating_polynomials = qr.getPolynomials_M(amount_of_bytes_of_correction); // генерирующий многочлен
-
-        int COLMNcorrection=COLMN+amount_of_bytes_of_correction;//столбцы для блоков коррекции
-        int[][] blocks_of_correction_bytes = new int[LINE][COLMNcorrection];
-
-        for (int i = 0; i < LINE; i++) {
-            blocks_of_correction_bytes[i] = qr.generateCorrectionBytes(byteBlocks[i],amount_of_bytes_of_correction);
+            blocks_of_correction[i]=qr_Library.ReedSolomon(byte_block[i], qr_Library.bytesOfCorrection_M[version]);
         }
-        
-        for (int i = 0; i < blocks_of_correction_bytes.length; i++) {
-            System.out.println("blocks_of_correction_bytes: "+i);
-            for (int j : blocks_of_correction_bytes[i]) {
-                System.out.print(j+";");
+
+        for(int i = 0;i<blocks_of_correction.length;i++){
+            System.out.print("blocks_of_correction "+i+":");
+            for(int j=0;j<blocks_of_correction[i].length;j++){
+                System.out.print(" "+blocks_of_correction[i][j]);
             }
-            System.out.println("");
+            System.out.println();
         }
 
-        String byte_sequence = "";
-        for (int i = 0; i < COLMN; i++) {
-            for (int j = 0; j < LINE; j++) {
-                byte_sequence+=byteBlocks[j][i];
-                byte_sequence+=";";
-            }
-        }
-        System.out.println("byte_sequence:"+byte_sequence);
-        for (int i = 0; i < COLMNcorrection; i++) {
-            for (int j = 0; j < LINE; j++) {
-                try {
-                    byte_sequence+=blocks_of_correction_bytes[j][i];
-                    byte_sequence+=";";
-                } catch (Exception e) {
-                    continue;
-                }
+        int BYTE_OF_CORRECTION_BLOCKS = blocks_of_correction.length;
+        int BYTE_OF_CORRECTION_NUMBERS = blocks_of_correction[BYTE_OF_CORRECTION_BLOCKS-1].length;
+
+        for (int i = 0; i < BYTE_OF_CORRECTION_NUMBERS; i++) {
+            for(int j = 0;j<BYTE_OF_CORRECTION_BLOCKS;j++){
+                byte_code+=blocks_of_correction[j][i];
+                byte_code+=";";
             }
         }
 
-        System.out.println("byte_sequence"+byte_sequence);
-        makeBarcode(byte_sequence);
-        return byte_sequence;
+
+
+        System.out.println(byte_code);
+
+        return byte_code;
     }
 
     private String dec_to_bin(String dec){
         int num=Integer.parseInt(dec);
         String s = "";
         while (num != 0) {
-            int   rem = num % 2;
+            int rem = num % 2;
             num /= 2;
             s = rem + s;
         }
         return s;
     }
 
-    private String bit_to_byte(String bit){
-        String _byte ="";
-        int a=0;
-        var strbild = new StringBuilder(bit);
-        bit = strbild.reverse().toString();
-        for(int i = bit.length()-1;i>-1;i--){
-            int b = Integer.valueOf(String.valueOf(bit.charAt(i)));
-            a+= (int)Integer.valueOf(String.valueOf(bit.charAt(i)))*Math.pow(b*2, i);
-        }
-        _byte=String.valueOf(a);
-        return _byte;
-    }
-
-    private void makeBarcode(String code){
-        try {
-            int width = qr.getSize(qr.version); //ширина
-            int height = width; //высота
-            BufferedImage bufferedImage = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
-
-            for(int x = 0;x<width;x++){
-                for(int y = 0;y<height;y++){
-                    bufferedImage.setRGB(x,y,0xFFFFFF);  // заполнение холста белыми квадратами
-                }
+    private String bin_to_dec(String s){
+        int ans = 0, i, p = 0;
+ 
+        // length of String
+        int len = s.length();
+ 
+        // Traversing the String
+        for (i = len - 1; i >= 0; i--) {
+ 
+            if (s.charAt(i) == '1') {
+                // Calculating Decimal Number
+                ans += Math.pow(2, p);
             }
-
-            String[][] search_pattern = qr.search_pattern;
-            int limiter =7;
-            int next_x=0;
-            int next_y=0;
-            
-
-            for (int i = 0; i < 3; i++) {
-                if(i==1){
-                    next_x=width-7;
-                    next_y=0;
-                }else{
-                    if(i==2){
-                        next_x=0;
-                        next_y=height-7;
-                    }
-                }
-                                                                         // добавление поисковых узоров
-                for(int x = 0+next_x;x<limiter+next_x;x++){
-                    for(int y = 0+next_y;y<limiter+next_y;y++){
-                        if(search_pattern[x-next_x][y-next_y]=="1"){  
-                            bufferedImage.setRGB(x,y,0x000000);
-
-                        }
-                    }
-                }
-            }
-
-            for(int x = 8;x<width-8;x++){
-                int y = 6;
-                if(x%2==0)bufferedImage.setRGB(x,y,0x000000);        // добавление полос синхроницзации
-                
-            }
-            for(int y = 8;y<width-8;y++){
-                int x = 6;
-                if(y%2==0)bufferedImage.setRGB(x,y,0x000000);
-                
-            }
-            String[] pattern = qr.getVersionPattern(qr.version);  // добавление версии
-            if(qr.version>=7){
-                int y = height-10;
-                int x = 0;
-                for (int i = 0; i < pattern.length; i++) {
-                    for (int j = 0; j < pattern[i].length(); j++) {
-                        if(pattern[i].charAt(j)=='1'){
-                            bufferedImage.setRGB(x, y, 0x000000);
-                        }
-                        x++;
-                    }
-                    x=0;
-                    y++;
-                }
-                x=0;
-                y=height-10;
-                for (int i = 0; i < pattern.length; i++) {
-                    for (int j = 0; j < pattern[i].length(); j++) {
-                        if(pattern[i].charAt(j)=='1'){
-                            bufferedImage.setRGB(y, x, 0x000000);
-                        }
-                        x++;
-                    }
-                    x=0;
-                    y++;
-                }
-            }
-
-            int x=width-1;
-            int y=height-1;
-            int collmns = x/2;
-            int collumn=0;
-            int firstcollumns = (qr.version>=7)?5:4;
-            boolean vertical_end=false;
-            String[] byte_sequnce = code.split(";");
-            for (String _byte:byte_sequnce) {
-                String b = dec_to_bin(_byte);
-                while(b.length()!=8)b="0"+b;
-                for (int i = 0; i < b.length(); i++) {
-                    if (x < 0 || x >= width || y < 0 || y >= height) break;
-                    if(vertical_end==false){
-                        if(b.charAt(i)=='1'){bufferedImage.setRGB(x, y, 0x000000);}
-                        x--;
-                        if(x<=width-collumn*2-3){
-                            y--;
-                            if(y==6)y--;
-                            if((y==8 & collumn<=firstcollumns)||(y==0)||(y==8 & collumn>=collmns-4)){
-                                vertical_end=true;
-                                collumn++;
-                                x=width-collumn*2-1;
-                                y=(collumn<=firstcollumns || collumn>=collmns-4)?9:0;
-                            }
-                            x=width-collumn*2-1;
-                        }
-                        
-                    }else{
-                        if(b.charAt(i)=='1'){bufferedImage.setRGB(x, y, 0x000000);}
-                        x--;
-                        if(x==width-collumn*2-3){
-                            y++;
-                            if(y==6)y++;
-                            if((y==height-1)||(y==height-8 & collumn>=collmns-4)){
-                                vertical_end=false;
-                                collumn++;
-                                x=width-collumn*2-1;
-                                y=(collumn>=collmns-4)?height-9:height-1;
-                            }
-                            x=width-collumn*2-1;
-                        }
-                    }
-                    //System.out.println("y:"+y+"x:"+x+"vertical_end:"+vertical_end+"collumn:"+collumn);
-                }
-            }
-
-            int[] locationsOfAligmentPatterns = qr.getLocationsOfAligmentPatterns(qr.version);    // добавление узоров выранивания
-            if(qr.version>1){
-                for (int i = 0; i < locationsOfAligmentPatterns.length; i++) {
-                
-                    for (int j = 0; j < locationsOfAligmentPatterns.length; j++) {
-                        if((locationsOfAligmentPatterns[i]==6 & locationsOfAligmentPatterns[j]==6)
-                        ||(locationsOfAligmentPatterns[i]==6 & locationsOfAligmentPatterns[j]==width-7)
-                        ||(locationsOfAligmentPatterns[i]==width-7 & locationsOfAligmentPatterns[j]==6)){
-                            
-                            continue;
-                        }else{
-                            String[][] aligment_pattern = qr.aligment_pattern;
-                            for (int k = 0; k < 5; k++) {
-                                for (int h = 0; h < 5; h++) {
-                                    if(aligment_pattern[k][h]=="1"){
-                                        bufferedImage.setRGB(locationsOfAligmentPatterns[i]+k-2,locationsOfAligmentPatterns[j]+h-2,0x000000);
-                                    }else{if(aligment_pattern[k][h]=="0"){
-                                        bufferedImage.setRGB(locationsOfAligmentPatterns[i]+k-2,locationsOfAligmentPatterns[j]+h-2,0xffffff);
-                                    }}
-    
-                                }
-                                
-                                
-                            }
-                        }
-                    }
-                }
-            }
-
-            String maskpattern=qr.getMask(0);
-            System.out.println(maskpattern);
-            
-            x=0;y=8;
-            for(int i =0;i<maskpattern.length();i++){
-                if(maskpattern.charAt(i)=='1' & i<=maskpattern.length()/2)bufferedImage.setRGB(x+i, y, 0x000000);
-                else{
-                    bufferedImage.setRGB(8, y+(y-i)*-1, 0x000000);
-                }
-            }
-
-            bincode = code;
-            saveBarCode(bufferedImage);
-           
-        } catch (Exception e) {
-            System.out.println(e.getLocalizedMessage());
-        }
-    }
-    private void saveBarCode(BufferedImage bufferedImage){
-        try {
-            
-            int countFiles = new File("img").listFiles().length;
-            countFiles++;
-            for(int i=0;i<countFiles;i++){
-                String path="img//barcode"+i+".png";
-                File file = new File(path);
-                if(file.exists()==true){
-                    System.out.println(path+": exists");
-                    continue;
-                }
-                else{
-                    last_barcode=path;
-                    ImageIO.write(bufferedImage,"png",file);
-                    file.createNewFile();
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            e.getLocalizedMessage();
-        }
-        
-    }
-
-    private String LetterNumericCoding(String input){
-        // В этом случае на 2 символа требуется 11 бит информации. Входной поток символов разделяется на группы по 2, 
-        // в группе каждый символ кодируется согласно таблице QRCodeLibrary.java,
-        // значение первого символа в группе умножается на 45 и прибавляется к значение второго символа.
-        // Полученное число переводится в 11-битное двоичное число и добавляется к последовательности бит.
-        // Если в последней группе 1 символ, то его значение сразу кодируется 6-битным числом и добавляется к последовательности бит.
-
-        String bincode="";
-        String couple="";
-        
-        for(int i =0;i<input.length();i+=2){
-            String a1;String a2;String b="";
-            if(input.length()<=i+1){
-                couple+=input.charAt(i);
-                a1=String.valueOf(couple.charAt(0));
-                try {
-                    a1=a1.toUpperCase();
-                } catch (Exception e) {}
-                b += dec_to_bin(String.valueOf(
-                    (qr.getIndex(a1))
-                ));
-                while(b.length()!=6){
-                    b="0"+b;
-                }
-                bincode+=b;
-                b="";
-                break;
-            }
-            couple+=input.charAt(i);
-            couple+=input.charAt(i+1);
-            a1=String.valueOf(couple.charAt(0));
-            a2=String.valueOf(couple.charAt(1));
-            try {
-                a1=a1.toUpperCase();
-            } catch (Exception e) {}
-            try {
-                a2=a2.toUpperCase();
-            } catch (Exception e) {}
-            b += dec_to_bin(String.valueOf(
-                (qr.getIndex(a1)*45)+
-                (qr.getIndex(a2))
-            ));
-            while(b.length()!=11){
-                b="0"+b;
-            }
-            bincode+=b;
-            b="";
-            couple="";
-            
-        }
-        return bincode;
-    }
-    
-    private String NumericCoding(String input){
-        // Этот тип кодирования требует 10 бит на 3 символа. 
-        //
-        // Вся последовательность символов разбивается на группы по 3 цифры, и каждая группа (трёхзначное число) переводится в 10-битное двоичное число 
-        // и добавляется к последовательности бит. Если общее количество символов не кратно 3, то если в конце остаётся 2 символа, 
-        // полученное двузначное число кодируется 7 битами, а если 1 символ, то 4 битами.
-        //
-        // Например, есть строка «12345678», которую надо закодировать. 
-        // Мы разбиваем её на числа: 123, 456 и 78, затем переводим каждое из них в двоичный вид: 0001111011, 0111001000 и 1001110, и объединяем это в один поток: 
-        // 000111101101110010001001110.
-
-        String row="";
-        String bincode="";
-        int j=0;
-
-        for(int i =0;i<input.length();i++){ // разбиение на 3-х значные числа
-            if(j==3){
-                row+=";";j=0;
-            }
-            row+=input.charAt(i);
-            j++;
+            // incrementing value of p
+            p++;
         }
 
-        row+=";";
-        String dec="";
-
-        for(int i =0;i<row.length();i++){
-            if(row.charAt(i)==';'){
-                String a;
-                if(dec.length()==2){ //если осталось 2 цифры
-                    a = dec_to_bin(dec);
-                    while(a.length()!=7){
-                        a="0"+a;
-                    }
-                }else{
-                    if(dec.length()==1){ //если осталось 1 цифра
-                        a = dec_to_bin(dec);
-                        while(a.length()!=4){
-                            a="0"+a;
-                        }
-                    }else{
-                        a = dec_to_bin(dec); // для 3 цифр
-                        while(a.length()!=10){
-                            a="0"+a;
-                        }
-                    }
-                }
-                
-                dec="";
-                
-                bincode+=a;
-
-            }else{
-                dec+=row.charAt(i);
-            }
-        }
-        return bincode;
+        return Integer.toString(ans);
     }
 }
-
