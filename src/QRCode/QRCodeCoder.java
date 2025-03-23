@@ -9,7 +9,7 @@ public class QRCodeCoder {
     private int version;
     public String last_barcode;
 
-    public String IncodeToQR(String input_text){
+    public String IncodeToQR(String input_text,int QRCODE_masktype){
         String bit_sequence = ByteIncode(input_text);
         bit_sequence = AddServiceInfo(bit_sequence,input_text);
 
@@ -17,7 +17,7 @@ public class QRCodeCoder {
         int[][] byte_blocks = GenerateBlocks(array_bit_sequence);
 
 
-        qr_maker.makeBarcode(CombiningBlocks(byte_blocks),version);
+        qr_maker.makeBarcode(CombiningBlocks(byte_blocks),version,QRCODE_masktype);
 
         last_barcode=qr_maker.last_barcode;
 
@@ -139,7 +139,11 @@ public class QRCodeCoder {
         }
 
         
-        for (int i = 0; i < blocks_of_correction.length; i++) {
+        // for (int i = 0; i < blocks_of_correction.length; i++) {
+            
+        //     blocks_of_correction[i]=qr_Library.ReedSolomon(byte_block[i], qr_Library.bytesOfCorrection_M[version]);
+        // }
+        for (int i = 0; i < byte_block.length; i++) {
             
             blocks_of_correction[i]=qr_Library.ReedSolomon(byte_block[i], qr_Library.bytesOfCorrection_M[version]);
         }

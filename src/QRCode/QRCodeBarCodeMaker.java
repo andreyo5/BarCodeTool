@@ -11,11 +11,11 @@ public class QRCodeBarCodeMaker {
     public String bincode;
     public String last_barcode;
     
-    public void makeBarcode(String code,int version){
+    public void makeBarcode(String code,int version,int QRCODE_masktype){
         try {
             int width = qr.getSize(version); //ширина
             int height = width; //высота
-            if(version>1){width+=7;height+=7;}
+            //if(version>1){width+=7;height+=7;}
             BufferedImage bufferedImage = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
 
             for(int x = 0;x<width;x++){
@@ -89,7 +89,7 @@ public class QRCodeBarCodeMaker {
                 }
             }
 
-            int maskVersion = 2;
+            int maskVersion = QRCODE_masktype;
             int x=width-1;
             int y=height-1;
             int collmns = x/2;
@@ -112,7 +112,11 @@ public class QRCodeBarCodeMaker {
                 System.out.println(d+" "+b);
                 for (int i = 0; i < b.length(); i++) {
                     
-                    if(x<=6)sl=1;
+                    if (x < 0 || x > width || y < 0 || y > height){ f=true;break;}
+                    if(x==6){
+                        sl=1;
+                        x=5;
+                    }
 
                     if(b.charAt(i)=='1'){
                         int rgb = (qr.setMask(maskVersion, x, y)==0)?0xffffff:0x000000;
@@ -151,34 +155,41 @@ public class QRCodeBarCodeMaker {
                             x=width-collumn*2-1-sl;
                         }
                     }
-                    if (x < 0 || x > width || y < 0 || y > height){ f=true;break;}
+                    
                 }
                 d++;
             }
 
             int[] locationsOfAligmentPatterns = qr.getLocationsOfAligmentPatterns(version);    // добавление узоров выранивания
-            if(version>1){
+            if(version>=2){
+                int p=-2;
+                System.out.println(locationsOfAligmentPatterns.length/2);
+                int[] modules = {locationsOfAligmentPatterns[0],locationsOfAligmentPatterns[locationsOfAligmentPatterns.length-1]};
+                for(int asd:modules){
+                    System.out.println("---------------------------------------------------"+asd+"---------------------------------------------------");
+                }
                 for (int i = 0; i < locationsOfAligmentPatterns.length; i++) {
                 
                     for (int j = 0; j < locationsOfAligmentPatterns.length; j++) {
-                        if((locationsOfAligmentPatterns[i]==6 & locationsOfAligmentPatterns[j]==6)
-                        ||(locationsOfAligmentPatterns[i]==6 & locationsOfAligmentPatterns[j]==width-7)
-                        ||(locationsOfAligmentPatterns[i]==width-7 & locationsOfAligmentPatterns[j]==6)){
-                            
+
+                        if(version>=7)if((locationsOfAligmentPatterns[i]==modules[0] & locationsOfAligmentPatterns[j]==modules[0]) ||
+                        (locationsOfAligmentPatterns[i]==modules[0] & locationsOfAligmentPatterns[j]==modules[1]) ||
+                        (locationsOfAligmentPatterns[i]==modules[1] & locationsOfAligmentPatterns[j]==modules[0])
+                        ){
                             continue;
-                        }else{
-                            String[][] aligment_pattern = qr.aligment_pattern;
+                        }   
+
+                        String[][] aligment_pattern = qr.aligment_pattern;
                             for (int k = 0; k < 5; k++) {
                                 for (int h = 0; h < 5; h++) {
                                     if(aligment_pattern[k][h]=="1"){
-                                        bufferedImage.setRGB(locationsOfAligmentPatterns[i]+k-2,locationsOfAligmentPatterns[j]+h-2,0x000000);
+                                        bufferedImage.setRGB(locationsOfAligmentPatterns[i]+k+p,locationsOfAligmentPatterns[j]+h+p,0x000000);
                                     }else{if(aligment_pattern[k][h]=="0"){
-                                        bufferedImage.setRGB(locationsOfAligmentPatterns[i]+k-2,locationsOfAligmentPatterns[j]+h-2,0xffffff);
+                                        bufferedImage.setRGB(locationsOfAligmentPatterns[i]+k+p,locationsOfAligmentPatterns[j]+h+p,0xffffff);
                                     }}
     
                                 }
                             }
-                        }
                     }
                 }
             }

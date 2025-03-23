@@ -98,7 +98,7 @@ public class QRCodeLibrary {
             79,174,213,233,230,231,173,232,116,214,244,234,168,80,88,175
         };
         locationsOfAligmentPatterns = new int[][]{
-            {1,21},
+            {1,14},
             {2,18},
             {3,22},
             {4,26},
@@ -106,7 +106,7 @@ public class QRCodeLibrary {
             {6,34},
             {7,6, 22, 38},          //
             {8,6, 24, 42},          //
-            {9,6, 26, 46},          // первый элемент строки означает версию - последующие узоры
+            {9,6, 26, 46},          // первый элемент строки означает версию - последующие координаты узоров
             {10,6, 28, 50},         //
             {11,6, 30, 54},         //
             {12,6, 32, 58},
@@ -243,21 +243,23 @@ public class QRCodeLibrary {
         return index;
     }
 
+    
+
     public int getSize(int version){
-        int index =17+version*4;        
+        int index = 17+version*4;
+          
         return index;
     }
     public int[] getLocationsOfAligmentPatterns(int version){
         int[] a=new int[0];
+
         for(int i = 0;i<locationsOfAligmentPatterns.length;i++){
             if(locationsOfAligmentPatterns[i][0]==version){
                 a = new int[locationsOfAligmentPatterns[i].length-1];
-                for (int j = 0; j < locationsOfAligmentPatterns[i].length; j++) {
-                    try {
-                        a[j]=locationsOfAligmentPatterns[i][j+1];
-                    } catch (Exception e) {
-                    }
+                for (int j = 1; j < locationsOfAligmentPatterns[i].length; j++) {
+                    a[j-1]=locationsOfAligmentPatterns[i][j];
                 }
+                break;
             }
         }
         return a;
@@ -330,8 +332,8 @@ public class QRCodeLibrary {
                 a=0;
             break;
         }
-        //System.out.println("X "+X+" Y "+Y+"="+a);
-        return a;
+        System.out.println("X "+X+" Y "+Y+"="+a);
+        return (int)a;
     }
 
     
@@ -339,20 +341,20 @@ public class QRCodeLibrary {
         // Исходный блок данных
         int[] dataBlock = currentBlock;
         int[] GEN_POLY = getPolynomials_M(correctionBytesCount);;
-        int nCorrections = 10;
+        int nCorrections = correctionBytesCount;
 
         // Подготовка массива
         int maxLen = Math.max(dataBlock.length, nCorrections);
         int[] array = new int[maxLen];
         System.arraycopy(dataBlock, 0, array, 0, dataBlock.length);
-        // Оставшиеся элементы уже 0 по умолчанию в Java
+        // Оставшиеся элементы уже 0 по умолчанию
 
         // Основной цикл
         for (int i = 0; i < dataBlock.length; i++) {
             // Берем первый элемент и сдвигаем массив
             int A = array[0];
-            System.arraycopy(array, 1, array, 0, array.length - 1);
-            array[array.length - 1] = 0;
+            System.arraycopy(array, 1, array, 0, array.length-1);
+            array[array.length-1] = 0;
 
             // Если A = 0, пропускаем итерацию
             if (A == 0) {

@@ -30,6 +30,7 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import Aztec.AztecCoder;
 import Code128.Code128Coder;
 import Code128.Code128Decoder;
 import QRCode.QRCodeBarCodeMaker;
@@ -37,6 +38,7 @@ import QRCode.QRCodeCoder;
 //import QRCode.QRCodeDecoder;
 // import Aztec.AztecCoder;
 // import Aztec.AztecDecoder;
+import QRCode.QRCodeDecoder;
 
 public class GUI {
     //метод для составления готовой картинки
@@ -48,6 +50,12 @@ public class GUI {
     private static String bincode; // бинарный код штрихкода где 1 это черная полоса а 0 белая
     private static String text; // зашифрованный текст
     private static String path; // путь к изображению штрихкода
+
+    //qr
+    private static int QRCODE_masktype; //qr mask
+    private static JTextField QRCODE_masktype_textfield; // qr mask field
+
+
     final int LeftDivider = 800;
     final int RightDivider = 400;
 
@@ -150,7 +158,7 @@ public class GUI {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         try {
-                            DB.EraseDB(DB.codes[j]);
+                            DB.EraseDB(String.valueOf(DB.types[j]),DB.codes[j]);
                         } catch (SQLException e1) {e1.getLocalizedMessage();}
                         GUI.BarCode_List_Panel = List_Of_BarCodes();
                         Validator();
@@ -252,7 +260,9 @@ public class GUI {
         JButton btnIncode = new JButton("Зашифровать");
         JButton btnDecode = new JButton("Расшифровать");
         JScrollPane list_scroller = new JScrollPane(list1);
+        JPanel selectedBarCodePanel = new JPanel();
         JLabel selectedBarCodeLabel = new JLabel("Сейчас выбран: "+selectedBarCode);
+        QRCODE_masktype_textfield = new JTextField("Введите маску");
         
         list1.addListSelectionListener(new ListSelectionListener() {
             @Override
@@ -261,6 +271,16 @@ public class GUI {
                   selectedBarCode = list1.getSelectedValue().toString();
                   selectedBarCodeLabel.setText("Сейчас выбран: "+selectedBarCode);
                 }
+                if(selectedBarCode=="QR-CODE"){
+                    selectedBarCodePanel.removeAll();
+                    selectedBarCodePanel.add(selectedBarCodeLabel);
+                    selectedBarCodePanel.add(QRCODE_masktype_textfield);
+                }else{
+                    selectedBarCodePanel.removeAll();
+                    selectedBarCodePanel.add(selectedBarCodeLabel);
+                }
+                
+
             }
         });
 
@@ -292,7 +312,13 @@ public class GUI {
                 
                     case "QR-CODE":
                         QRCodeCoder qr = new QRCodeCoder();
-                        GUI.bincode = qr.IncodeToQR(input_text);
+                        try {
+                            QRCODE_masktype = Integer.parseInt(QRCODE_masktype_textfield.getText());
+                        } catch (Exception e1) {
+                            QRCODE_masktype = 2;
+                            System.err.println(e1.getLocalizedMessage());
+                        }
+                        GUI.bincode = qr.IncodeToQR(input_text,QRCODE_masktype);
                         GUI.path = qr.last_barcode;
                         GUI.text = input_text;
                         type=2;
@@ -313,7 +339,24 @@ public class GUI {
                         break;
 
                     case "Aztec":
-                        // Aztec code perfrom
+                        AztecCoder Aztec = new AztecCoder();
+                        GUI.bincode = Aztec.encode(input_text);
+                        GUI.path = "0";
+                        GUI.text = input_text;
+                        type=3;
+
+                        try {
+                            DataBase DB = new DataBase();
+                            DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
+                        } catch (SQLException|IOException e1) {
+                            e1.printStackTrace();
+                        }
+                        
+                        System.out.println(bincode);
+
+                        GUI.BarCode_List_Panel = List_Of_BarCodes();
+                        GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
+                        Validator();
                         break;
                 }
             }
@@ -337,8 +380,29 @@ public class GUI {
                 }
                 try {
                     DataBase db = new DataBase();
-                    String result = Code128Decoder.decodeBarcode(filePathField);
-                    String result_bincode = Code128Decoder.finishedbincode;
+                    String result="";
+                    String result_bincode="";
+                    QRCodeDecoder qr = new QRCodeDecoder();
+                    switch (selectedBarCode) {
+                        case "Aztec":
+                            
+                            break;
+
+                        case "code128":
+                            result = Code128Decoder.decodeBarcode(filePathField);
+                            result_bincode = Code128Decoder.finishedbincode;
+                        break;
+
+                        case "QR-CODE":
+                            result = qr.decodeBarcode(filePathField); // text
+                            result_bincode = qr.finishedbincode; // bincode
+                        break;
+                    
+                        default:
+                            break;
+                    }
+                    
+
                     db.WriteCodeAndPathToDB(1,result_bincode,result,filePathField);
 
                     GUI.Barcode_View = BarCode_Viewer_Panel(filePathField,result);
@@ -359,7 +423,7 @@ public class GUI {
         IncodePanel.setLayout(new BorderLayout());
         IncodePanel.add(list_scroller,BorderLayout.WEST);
         IncodePanel.add(textField,BorderLayout.CENTER);
-        IncodePanel.add(selectedBarCodeLabel,BorderLayout.NORTH);
+        IncodePanel.add(selectedBarCodePanel,BorderLayout.NORTH);
 
         JPanel ButtonsPanel = new JPanel();
         ButtonsPanel.setLayout(new BorderLayout());

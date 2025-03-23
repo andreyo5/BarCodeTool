@@ -105,12 +105,13 @@ public class DataBase{
         }
     }
 
-    public void EraseDB(String text) throws SQLException{
+    public void EraseDB(String type,String text) throws SQLException{
         Connection conn = this.ConnectToDB();
         try {
-            String sql = "DELETE FROM BarCodes WHERE text=(?)";
+            String sql = "DELETE FROM BarCodes WHERE type=(?) AND text=(?)";
             PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, text);
+            pstmt.setString(1, type);
+            pstmt.setString(2, text);
             pstmt.executeUpdate();
             pstmt.close();
 
