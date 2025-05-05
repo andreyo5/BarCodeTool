@@ -1,8 +1,6 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -30,14 +28,11 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import Aztec.AztecCoder;
 import Code128.Code128Coder;
 import Code128.Code128Decoder;
-import QRCode.QRCodeBarCodeMaker;
+
 import QRCode.QRCodeCoder;
 //import QRCode.QRCodeDecoder;
-// import Aztec.AztecCoder;
-// import Aztec.AztecDecoder;
 import QRCode.QRCodeDecoder;
 
 public class GUI {
@@ -176,7 +171,7 @@ public class GUI {
                         a="QR-Code";
                         break;
                     case 3:
-                        a="Aztec";
+                        a="UPC_E";
                         break;
                     default:
                         a="Undefined";
@@ -246,7 +241,7 @@ public class GUI {
     // панель на которой есть выпадающий список состоящий из видов штрихкодов, текстовое поле для ввода информации которую нужно зашифровать, кнопка зашифровать, кнопка расшифровать
     // кнопка расшифровать поменяет наполнение панели на: кнопку выбрать штрих-код(картинку с штрихкодом).
     private static DefaultListModel<String> dlm = new DefaultListModel<String>();
-    private static String[] BarCode_Types = { "code128" ,"QR-CODE"  ,"Aztec"};
+    private static String[] BarCode_Types = { "code128" ,"QR-CODE"  ,"UPC_E"};
     private static String selectedBarCode=BarCode_Types[0];
         
     private JPanel Functional_Panel(){
@@ -338,25 +333,25 @@ public class GUI {
 
                         break;
 
-                    case "Aztec":
-                        AztecCoder Aztec = new AztecCoder();
-                        GUI.bincode = Aztec.encode(input_text);
-                        GUI.path = "0";
-                        GUI.text = input_text;
-                        type=3;
+                    case "UPC_E":
+                        // AztecCoder Aztec = new AztecCoder();
+                        // GUI.bincode = Aztec.encode(input_text);
+                        // GUI.path = "0";
+                        // GUI.text = input_text;
+                        // type=3;
 
-                        try {
-                            DataBase DB = new DataBase();
-                            DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
-                        } catch (SQLException|IOException e1) {
-                            e1.printStackTrace();
-                        }
+                        // try {
+                        //     DataBase DB = new DataBase();
+                        //     DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
+                        // } catch (SQLException|IOException e1) {
+                        //     e1.printStackTrace();
+                        // }
                         
-                        System.out.println(bincode);
+                        // System.out.println(bincode);
 
-                        GUI.BarCode_List_Panel = List_Of_BarCodes();
-                        GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
-                        Validator();
+                        // GUI.BarCode_List_Panel = List_Of_BarCodes();
+                        // GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
+                        // Validator();
                         break;
                 }
             }
