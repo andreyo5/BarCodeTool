@@ -8,7 +8,7 @@ public class App{
 
     @SuppressWarnings("static-access")
     public static JFrame createFrame(){
-        frame = new JFrame("BarCode Tool");
+        frame = new JFrame("Штрих-код Мастер");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setSize(WIDTH,HEIGHT);
         frame.setResizable(false);

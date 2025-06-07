@@ -15,7 +15,6 @@ public class Code128Coder{
 
     static void saveBarCode(BufferedImage bufferedImage){
         try {
-            
             int countFiles = new File("img").listFiles().length;
             countFiles++;
             for(int i=0;i<countFiles;i++){

@@ -332,7 +332,7 @@ public class QRCodeLibrary {
                 a=0;
             break;
         }
-        System.out.println("X "+X+" Y "+Y+"="+a);
+        //System.out.println("X "+X+" Y "+Y+"="+a);
         return (int)a;
     }
 

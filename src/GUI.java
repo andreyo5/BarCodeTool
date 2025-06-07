@@ -32,8 +32,10 @@ import Code128.Code128Coder;
 import Code128.Code128Decoder;
 
 import QRCode.QRCodeCoder;
-//import QRCode.QRCodeDecoder;
 import QRCode.QRCodeDecoder;
+
+import EAN.EAN13Generator;
+import EAN.EAN13Decoder;
 
 public class GUI {
     //метод для составления готовой картинки
@@ -106,7 +108,8 @@ public class GUI {
     }
     public static ImageIcon setImage(BufferedImage bimg){
         try {
-            Image image = bimg.getScaledInstance(bimg.getWidth()+150,bimg.getHeight()+150,Image.SCALE_DEFAULT);
+            int zoom=-150;
+            Image image = bimg.getScaledInstance(bimg.getWidth()+zoom,bimg.getHeight()+zoom,Image.SCALE_DEFAULT);
             ImageIcon icon = new ImageIcon(image);
             return icon;
         } catch (Exception e) {
@@ -136,7 +139,7 @@ public class GUI {
         try {
             DataBase DB = new DataBase();
             DB.ReadDB();
-            scrollPanel.setLayout(new GridLayout(DB.getCount(),1, 5, 5));
+            scrollPanel.setLayout(new GridLayout(DB.getCount(),1, 1, 5));
             for(int i = 0;i<DB.getCount();i++){
                 JPanel row = new JPanel();
                 int j = i;
@@ -160,7 +163,7 @@ public class GUI {
                     }
                 });
 
-                row.setLayout(new GridLayout(1,5, 15, 15));
+                row.setLayout(new GridLayout(1,5, 1, 1));
 
                 String a = "";
                 switch (DB.types[i]) {
@@ -171,7 +174,7 @@ public class GUI {
                         a="QR-Code";
                         break;
                     case 3:
-                        a="UPC_E";
+                        a="EAN";
                         break;
                     default:
                         a="Undefined";
@@ -241,7 +244,7 @@ public class GUI {
     // панель на которой есть выпадающий список состоящий из видов штрихкодов, текстовое поле для ввода информации которую нужно зашифровать, кнопка зашифровать, кнопка расшифровать
     // кнопка расшифровать поменяет наполнение панели на: кнопку выбрать штрих-код(картинку с штрихкодом).
     private static DefaultListModel<String> dlm = new DefaultListModel<String>();
-    private static String[] BarCode_Types = { "code128" ,"QR-CODE"  ,"UPC_E"};
+    private static String[] BarCode_Types = { "Code128" ,"QR-CODE"  ,"EAN"};
     private static String selectedBarCode=BarCode_Types[0];
         
     private JPanel Functional_Panel(){
@@ -258,13 +261,15 @@ public class GUI {
         JPanel selectedBarCodePanel = new JPanel();
         JLabel selectedBarCodeLabel = new JLabel("Сейчас выбран: "+selectedBarCode);
         QRCODE_masktype_textfield = new JTextField("Введите маску");
+        selectedBarCodePanel.add(selectedBarCodeLabel);
         
         list1.addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent arg0) {
                 if (!arg0.getValueIsAdjusting()) {
-                  selectedBarCode = list1.getSelectedValue().toString();
-                  selectedBarCodeLabel.setText("Сейчас выбран: "+selectedBarCode);
+                    selectedBarCode = list1.getSelectedValue().toString();
+                    selectedBarCodeLabel.setText("Сейчас выбран: "+selectedBarCode);
+                    
                 }
                 if(selectedBarCode=="QR-CODE"){
                     selectedBarCodePanel.removeAll();
@@ -285,7 +290,7 @@ public class GUI {
                 String input_text = textField.getText();
                 int type=0;
                 switch (selectedBarCode) {
-                    case "code128":
+                    case "Code128":
                         Code128Coder.code128(input_text);
 
                         GUI.path = Code128Coder.last_barcode;
@@ -333,25 +338,26 @@ public class GUI {
 
                         break;
 
-                    case "UPC_E":
-                        // AztecCoder Aztec = new AztecCoder();
-                        // GUI.bincode = Aztec.encode(input_text);
-                        // GUI.path = "0";
-                        // GUI.text = input_text;
-                        // type=3;
+                    case "EAN":
+                        EAN13Generator ean = new EAN13Generator();
+                        GUI.bincode = ean.generate(input_text);
+                        GUI.path = ean.last_barcode;
+                        GUI.text = input_text;
+                        type=3;
+                        System.out.println("EAN13EAN13EAN13");
 
-                        // try {
-                        //     DataBase DB = new DataBase();
-                        //     DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
-                        // } catch (SQLException|IOException e1) {
-                        //     e1.printStackTrace();
-                        // }
+                        try {
+                            DataBase DB = new DataBase();
+                            DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
+                        } catch (SQLException|IOException e1) {
+                            e1.printStackTrace();
+                        }
                         
-                        // System.out.println(bincode);
+                        System.out.println(bincode);
 
-                        // GUI.BarCode_List_Panel = List_Of_BarCodes();
-                        // GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
-                        // Validator();
+                        GUI.BarCode_List_Panel = List_Of_BarCodes();
+                        GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
+                        Validator();
                         break;
                 }
             }
@@ -379,11 +385,11 @@ public class GUI {
                     String result_bincode="";
                     QRCodeDecoder qr = new QRCodeDecoder();
                     switch (selectedBarCode) {
-                        case "Aztec":
+                        case "EAN":
                             
                             break;
 
-                        case "code128":
+                        case "Code128":
                             result = Code128Decoder.decodeBarcode(filePathField);
                             result_bincode = Code128Decoder.finishedbincode;
                         break;

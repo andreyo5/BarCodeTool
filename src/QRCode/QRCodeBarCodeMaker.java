@@ -94,9 +94,9 @@ public class QRCodeBarCodeMaker {
                 int p=-2;
                 System.out.println(locationsOfAligmentPatterns.length/2);
                 
-                for(int asd:modules){
-                    System.out.println("---------------------------------------------------"+asd+"---------------------------------------------------");
-                }
+                // for(int asd:modules){
+                //     System.out.println("---------------------------------------------------"+asd+"---------------------------------------------------");
+                // }
                 for (int i = 0; i < locationsOfAligmentPatterns.length; i++) {
                 
                     for (int j = 0; j < locationsOfAligmentPatterns.length; j++) {
@@ -153,9 +153,6 @@ public class QRCodeBarCodeMaker {
                     }
                     if(vertical_up){// вверх
                         if(version>1){
-                            System.out.println("x"+x);
-                            System.out.println("y"+y);
-                            System.out.println("locationsOfAligmentPatterns"+locationsOfAligmentPatterns[0]);
                             for(int r = 0;r<locationsOfAligmentPatterns.length;r++){
                                 int x1,x4;
                                 int y1,y4;
@@ -170,20 +167,17 @@ public class QRCodeBarCodeMaker {
                                 x4 = locationsOfAligmentPatterns[r]+2;//4
                                 y4 = locationsOfAligmentPatterns[r]+2;
 
-                                System.out.println("---0---");
                                 while(
                                     ((x>=x1)&&(x<=x4))
                                     &&
                                     ((y>=y1)&&(y<=y4))
                                 ){
-                                    System.out.println("Processing..");
                                     x--;
                                     if(x<=width-collumn*2-3-sl){
                                         y--;
                                         x=width-collumn*2-1-sl;
                                     }
                                 }
-                                System.out.println("---1---");
                             }
                         }
                         if(b.charAt(i)=='1'){
@@ -266,10 +260,6 @@ public class QRCodeBarCodeMaker {
                 d++;
             }
 
-              
-            
-
-            
             String maskpattern=qr.getMask(maskVersion);
             System.out.println(maskpattern);
             
