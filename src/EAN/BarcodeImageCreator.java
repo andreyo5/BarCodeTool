@@ -97,15 +97,14 @@ public class BarcodeImageCreator {
             }
         }
 
-        // Текст
-        g.setFont(new Font("Arial", Font.PLAIN, 24));
+        //Текст
+        g.setFont(new Font("Arial", Font.PLAIN, 40));
         FontMetrics fm = g.getFontMetrics();
-        int textWidth = fm.stringWidth(ean13);
-        g.drawString(ean13, (width - textWidth)/2, height - 10);
+        g.drawString(String.valueOf(ean13.charAt(0)),0,height-5);
+        g.drawString(ean13.substring(1, 7),100,height-5);
+        g.drawString(ean13.substring(7),370,height-5);
 
-        // Сохраняем в указанную папку
-        // File outputFile = new File(outputDir, filename);
-        // ImageIO.write(image, "PNG", outputFile);
+        
         saveBarCode(image);
         g.dispose();
     }

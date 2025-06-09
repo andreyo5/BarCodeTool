@@ -11,7 +11,7 @@ public class App{
         frame = new JFrame("Штрих-код Мастер");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setSize(WIDTH,HEIGHT);
-        frame.setResizable(false);
+        frame.setResizable(true);
         frame.setDefaultLookAndFeelDecorated(false);
         return frame;
     } 
@@ -21,6 +21,6 @@ public class App{
         GUI GUIManager = new GUI();
         frame.getContentPane().add(GUI.MainPanel);
         frame.setVisible(true);
-        
+
     }
 }

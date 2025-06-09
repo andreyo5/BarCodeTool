@@ -35,7 +35,6 @@ import QRCode.QRCodeCoder;
 import QRCode.QRCodeDecoder;
 
 import EAN.EAN13Generator;
-import EAN.EAN13Decoder;
 
 public class GUI {
     //метод для составления готовой картинки
@@ -63,7 +62,12 @@ public class GUI {
         RightSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,true); // Правая часть
 
         BarCode_List_Panel = List_Of_BarCodes();
-        Barcode_View = BarCode_Viewer_Panel(path,text);
+        try {
+            BufferedImage bimg = ImageIO.read(new File(path));
+            Barcode_View = BarCode_Viewer_Panel(0,bimg,text);
+        } catch (Exception e) {
+            Barcode_View = new JPanel();
+        }
         functional_panel = Functional_Panel();
 
         // Добавление контента в панель
@@ -95,21 +99,65 @@ public class GUI {
     }
 
 
-    public ImageIcon setImage(String path,int zoom){
+    public static ImageIcon setImage_BarcodeViewerPanel(BufferedImage bimg,int type){
         try {
-            zoom = (zoom<0)?0:zoom;
-            BufferedImage bufferedImage = ImageIO.read(new File(path));
-            Image image = bufferedImage.getScaledInstance(bufferedImage.getWidth()+zoom,bufferedImage.getHeight()+zoom,Image.SCALE_DEFAULT);
+            int width,height;
+            switch (type) {
+                case 1:
+                    width=400;
+                    height=120;
+                    break;
+
+                case 2:
+                    width=300;
+                    height=300;
+                    break;
+
+                case 3:
+                    width=400;
+                    height=200;
+                    break;
+            
+                default:
+                    width=100;
+                    height=100;
+                    break;
+            }
+
+            Image image = bimg.getScaledInstance(width,height,Image.SCALE_DEFAULT);
             ImageIcon icon = new ImageIcon(image);
             return icon;
         } catch (Exception e) {
             return new ImageIcon();
         }
     }
-    public static ImageIcon setImage(BufferedImage bimg){
+
+    public static ImageIcon setImage_ListOfBarcodes(BufferedImage bimg,int type){
         try {
-            int zoom=-150;
-            Image image = bimg.getScaledInstance(bimg.getWidth()+zoom,bimg.getHeight()+zoom,Image.SCALE_DEFAULT);
+            int width,height;
+            switch (type) {
+                case 1:
+                    width=100;
+                    height=50;
+                    break;
+
+                case 2:
+                    width=100;
+                    height=100;
+                    break;
+
+                case 3:
+                    width=150;
+                    height=50;
+                    break;
+            
+                default:
+                    width=50;
+                    height=50;
+                    break;
+            }
+
+            Image image = bimg.getScaledInstance(width,height,Image.SCALE_DEFAULT);
             ImageIcon icon = new ImageIcon(image);
             return icon;
         } catch (Exception e) {
@@ -139,7 +187,7 @@ public class GUI {
         try {
             DataBase DB = new DataBase();
             DB.ReadDB();
-            scrollPanel.setLayout(new GridLayout(DB.getCount(),1, 1, 5));
+            scrollPanel.setLayout(new GridLayout(DB.getCount(),1, 0, 10));
             for(int i = 0;i<DB.getCount();i++){
                 JPanel row = new JPanel();
                 int j = i;
@@ -165,30 +213,37 @@ public class GUI {
 
                 row.setLayout(new GridLayout(1,5, 1, 1));
 
-                String a = "";
+                String type = "";
                 switch (DB.types[i]) {
                     case 1:
-                        a = "Code128";
+                        type = "Code128";
                         break;
                     case 2:
-                        a="QR-Code";
+                        type="QR-Code";
                         break;
                     case 3:
-                        a="EAN";
+                        type="EAN";
                         break;
                     default:
-                        a="Undefined";
+                        type="Undefined";
                         break;
                 }
-                row.add(new JLabel(a));
-                row.add(new JLabel(setImage(DB.imBuff[i])));
-                row.add(new JLabel(DB.codes[i]));
-                row.add(zoomBtn);
-                row.add(deleteBtn);
+
+                if(type=="Undefined"){
+                    continue;
+                }
 
                 row.setBorder(BorderFactory.createLineBorder(Color.black));
 
+                row.add(new JLabel(type));
+                row.add(new JLabel(setImage_ListOfBarcodes(DB.imBuff[i],DB.types[i])));
+                row.add(new JLabel(DB.codes[i]));
+
+                row.add(zoomBtn);
+                row.add(deleteBtn);
+
                 scrollPanel.add(row);
+
             }
         } catch (SQLException|IOException e1) {
             e1.printStackTrace();
@@ -205,29 +260,9 @@ public class GUI {
 
 
     // панель на которой отображается: штрих-код(картинка);текст который зашифрован в штрихкоде;
-    private JPanel BarCode_Viewer_Panel(String path,String text){
-        if(path == null){
-            System.out.println("path:"+path);
-            return new JPanel();
-
-        }else{
-            int zoom = 0;
-            System.out.println("path:"+path+"\ntext:"+text);
-            JLabel BarCodeIMG_Label = new JLabel(setImage(path,zoom));
-            JLabel Text_Label = new JLabel(text);
-            Text_Label.setFont(new Font("TimesRoman",Font.ITALIC, 22));
-
-            JPanel MainPanel = new JPanel();
-            MainPanel.setLayout(new BorderLayout());
-            MainPanel.add(BarCodeIMG_Label,BorderLayout.CENTER);
-            MainPanel.add(Text_Label,BorderLayout.SOUTH);
-
-            return MainPanel; 
-        }   
-    }
     private JPanel BarCode_Viewer_Panel(int type,BufferedImage img,String text){
 
-        JLabel BarCodeIMG_Label = new JLabel(setImage(img));
+        JLabel BarCodeIMG_Label = new JLabel(setImage_BarcodeViewerPanel(img,type));
         JLabel Text_Label = new JLabel(text);
         Text_Label.setFont(new Font("TimesRoman",Font.ITALIC, 22));
 
@@ -287,79 +322,104 @@ public class GUI {
         btnIncode.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+
                 String input_text = textField.getText();
-                int type=0;
-                switch (selectedBarCode) {
-                    case "Code128":
-                        Code128Coder.code128(input_text);
+                if(input_text.equals("")){
+                    JOptionPane.showMessageDialog(new JFrame(), "Поле не должно быть пустым.");
+                }else{
+                    int type=0;
+                    boolean isAllowedIncode = !isCyrillic(input_text);
 
-                        GUI.path = Code128Coder.last_barcode;
-                        GUI.bincode = Code128Coder.bincode;
-                        GUI.text = input_text;
-                        type=1;
+                    if(isAllowedIncode)
+                        switch (selectedBarCode) {
+                        case "Code128":
+                            Code128Coder.code128(input_text);
 
-                        try {
-                            DataBase DB = new DataBase();
-                            DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
-                        } catch (SQLException|IOException e1) {
-                            e1.printStackTrace();
-                        }
-                        GUI.BarCode_List_Panel = List_Of_BarCodes();
-                        GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
-                        Validator();
-                        
-                        break;
-                
-                    case "QR-CODE":
-                        QRCodeCoder qr = new QRCodeCoder();
-                        try {
-                            QRCODE_masktype = Integer.parseInt(QRCODE_masktype_textfield.getText());
-                        } catch (Exception e1) {
-                            QRCODE_masktype = 2;
-                            System.err.println(e1.getLocalizedMessage());
-                        }
-                        GUI.bincode = qr.IncodeToQR(input_text,QRCODE_masktype);
-                        GUI.path = qr.last_barcode;
-                        GUI.text = input_text;
-                        type=2;
+                            GUI.path = Code128Coder.last_barcode;
+                            GUI.bincode = Code128Coder.bincode;
+                            GUI.text = input_text;
+                            type=1;
 
-                        try {
-                            DataBase DB = new DataBase();
-                            DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
-                        } catch (SQLException|IOException e1) {
-                            e1.printStackTrace();
-                        }
-                        
-                        System.out.println(bincode);
+                            try {
+                                DataBase DB = new DataBase();
+                                DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
 
-                        GUI.BarCode_List_Panel = List_Of_BarCodes();
-                        GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
-                        Validator();
+                                GUI.BarCode_List_Panel = List_Of_BarCodes();
 
-                        break;
+                                BufferedImage bufferedImage = ImageIO.read(new File(path));
+                                GUI.Barcode_View = BarCode_Viewer_Panel(1,bufferedImage,text);
 
-                    case "EAN":
-                        EAN13Generator ean = new EAN13Generator();
-                        GUI.bincode = ean.generate(input_text);
-                        GUI.path = ean.last_barcode;
-                        GUI.text = input_text;
-                        type=3;
-                        System.out.println("EAN13EAN13EAN13");
+                            } catch (SQLException|IOException e1) {
+                                e1.printStackTrace();
+                            }
+                            
+                            Validator();
+                            
+                            break;
+                    
+                        case "QR-CODE":
+                            QRCodeCoder qr = new QRCodeCoder();
+                            try {
+                                QRCODE_masktype = Integer.parseInt(QRCODE_masktype_textfield.getText());
+                            } catch (Exception e1) {
+                                QRCODE_masktype = 2;
+                                System.err.println(e1.getLocalizedMessage());
+                            }
+                            GUI.bincode = qr.IncodeToQR(input_text,QRCODE_masktype);
+                            GUI.path = qr.last_barcode;
+                            GUI.text = input_text;
+                            type=2;
 
-                        try {
-                            DataBase DB = new DataBase();
-                            DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
-                        } catch (SQLException|IOException e1) {
-                            e1.printStackTrace();
-                        }
-                        
-                        System.out.println(bincode);
+                            try {
+                                DataBase DB = new DataBase();
+                                DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
 
-                        GUI.BarCode_List_Panel = List_Of_BarCodes();
-                        GUI.Barcode_View = BarCode_Viewer_Panel(path,text);
-                        Validator();
-                        break;
+                                GUI.BarCode_List_Panel = List_Of_BarCodes();
+                                BufferedImage bufferedImage = ImageIO.read(new File(path));
+                                GUI.Barcode_View = BarCode_Viewer_Panel(2,bufferedImage,text);
+                            } catch (SQLException|IOException e1) {
+                                e1.printStackTrace();
+                            }
+
+                            
+                            Validator();
+
+                            break;
+
+                        case "EAN":
+                            EAN13Generator ean = new EAN13Generator();
+                            try {
+                                Integer.parseInt(input_text);
+                                GUI.bincode = ean.generate(input_text);
+                                GUI.path = ean.last_barcode;
+                                GUI.text = input_text;
+                                type=3;
+
+                                try {
+                                    DataBase DB = new DataBase();
+                                    DB.WriteCodeAndPathToDB(type,bincode, input_text, path);
+
+                                    GUI.BarCode_List_Panel = List_Of_BarCodes();
+                                    BufferedImage bufferedImage = ImageIO.read(new File(path));
+                                    GUI.Barcode_View = BarCode_Viewer_Panel(3,bufferedImage,text);
+                                } catch (SQLException|IOException e1) {
+                                    e1.printStackTrace();
+                                }
+
+                            } catch (Exception e2) {
+                                JOptionPane.showMessageDialog(new JFrame(), "EAN13 не поддерживает шифрование букв.");
+                            }
+                            
+
+                            Validator();
+                            break;
+                    }  
+                    else{
+                        JOptionPane.showMessageDialog(new JFrame(), "Обнаружены не допустимые символы.\nИспользовать можно только:\n\t- Буквы латинского алфавита\n\t- Цифры\n\t- Символы юникода\n\t- Знаки препинания");
+                    }
                 }
+                Validator();
+
             }
             
         });
@@ -405,8 +465,9 @@ public class GUI {
                     
 
                     db.WriteCodeAndPathToDB(1,result_bincode,result,filePathField);
+                    BufferedImage bufferedImage = ImageIO.read(new File(filePathField));
 
-                    GUI.Barcode_View = BarCode_Viewer_Panel(filePathField,result);
+                    GUI.Barcode_View = BarCode_Viewer_Panel(0,bufferedImage,result);
                     GUI.BarCode_List_Panel = List_Of_BarCodes();
                     Validator();
 
@@ -434,5 +495,21 @@ public class GUI {
         IncodePanel.add(ButtonsPanel,BorderLayout.SOUTH);
 
         return IncodePanel;
+    }
+    
+    private boolean isCyrillic(String text){
+
+        String raw = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
+        char[] cyrillic = raw.toCharArray();
+        char[] cyrillicU= raw.toUpperCase().toCharArray();
+
+        for (int i = 0; i < text.length(); i++) {
+            for (int j = 0; j < cyrillicU.length; j++) {
+                if((text.charAt(i)==cyrillic[j])||(text.charAt(i)==cyrillicU[j])){
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
