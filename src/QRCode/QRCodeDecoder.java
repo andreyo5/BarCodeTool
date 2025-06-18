@@ -81,7 +81,6 @@ public class QRCodeDecoder {
     private int[][] getMinimizedMatrix(BufferedImage bufferedImage){
         int x=0;
         int rgb=0;
-        //(rgb&0xffffff) == 0 ?"1":"0";
         while((rgb&0xffffff)==0){
             rgb=bufferedImage.getRGB(x, 0);
             x++;

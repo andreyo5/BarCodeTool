@@ -85,7 +85,7 @@ public class BarcodeImageCreator {
 
         // Генерация паттерна
         String pattern = generateFullPattern(ean13);
-        float barWidth = (width - 2*quietZone) / (float)pattern.length();
+        float barWidth = 6;
         
         // Рисуем штрихи
         g.setColor(Color.BLACK);
@@ -93,13 +93,16 @@ public class BarcodeImageCreator {
             if (pattern.charAt(i) == '1') {
                 int x = quietZone + (int)(i * barWidth);
                 int barHeight = isGuardPosition(i, pattern.length()) ? height : height - 40;
-                g.fillRect(x, 0, (int)Math.ceil(barWidth), barHeight);
+                //g.fillRect(x, 0, (int)Math.ceil(barWidth), barHeight);
+                for(int j =0;j<barHeight;j++){
+                    for(int k =0;k<6;k++)
+                        image.setRGB(x+k, j, 0x000000);
+                }
             }
         }
 
         //Текст
         g.setFont(new Font("Arial", Font.PLAIN, 40));
-        FontMetrics fm = g.getFontMetrics();
         g.drawString(String.valueOf(ean13.charAt(0)),0,height-5);
         g.drawString(ean13.substring(1, 7),100,height-5);
         g.drawString(ean13.substring(7),370,height-5);

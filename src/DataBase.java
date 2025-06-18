@@ -28,7 +28,9 @@ public class DataBase{
         try {
             conn = DriverManager.getConnection("jdbc:sqlite:BarCodeDB.db");
             
+            
         } catch (Exception e) {
+            
             System.out.println("doesnt connected "+e.getMessage());
         }
         
@@ -61,11 +63,15 @@ public class DataBase{
     }
     public int getCount() throws SQLException{
         Connection conn = this.ConnectToDB();
-        PreparedStatement pstmt = conn.prepareStatement("select count(*) from BarCodes");
+        PreparedStatement pstmt = conn.prepareStatement("select * from BarCodes");
         ResultSet rs = pstmt.executeQuery();
         rs.next();
         int count = rs.getInt(1);
         conn.close();
+
+        if(count<0){
+            count=1;
+        }
         return count;
     }
 

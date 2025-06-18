@@ -35,6 +35,7 @@ import QRCode.QRCodeCoder;
 import QRCode.QRCodeDecoder;
 
 import EAN.EAN13Generator;
+import EAN.BarcodeDecoder;
 
 public class GUI {
     //метод для составления готовой картинки
@@ -389,7 +390,6 @@ public class GUI {
                         case "EAN":
                             EAN13Generator ean = new EAN13Generator();
                             try {
-                                Integer.parseInt(input_text);
                                 GUI.bincode = ean.generate(input_text);
                                 GUI.path = ean.last_barcode;
                                 GUI.text = input_text;
@@ -428,7 +428,7 @@ public class GUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String filePathField="";
-                JFileChooser fileChooser = new JFileChooser();
+                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
                 int returnValue = fileChooser.showOpenDialog(new JFrame());
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = fileChooser.getSelectedFile();
@@ -444,19 +444,26 @@ public class GUI {
                     String result="";
                     String result_bincode="";
                     QRCodeDecoder qr = new QRCodeDecoder();
+                    BarcodeDecoder BarCodeDecoder = new BarcodeDecoder();
+                    int type=0;
                     switch (selectedBarCode) {
                         case "EAN":
-                            
+                            BufferedImage image = ImageIO.read(new File(filePathField));
+                            result = BarCodeDecoder.Startdecode(image);
+                            result_bincode = BarCodeDecoder.finishedbincode;
+                            type = 3;
                             break;
 
                         case "Code128":
                             result = Code128Decoder.decodeBarcode(filePathField);
                             result_bincode = Code128Decoder.finishedbincode;
+                            type = 1;
                         break;
 
                         case "QR-CODE":
                             result = qr.decodeBarcode(filePathField); // text
                             result_bincode = qr.finishedbincode; // bincode
+                            type = 2;
                         break;
                     
                         default:
@@ -464,10 +471,10 @@ public class GUI {
                     }
                     
 
-                    db.WriteCodeAndPathToDB(1,result_bincode,result,filePathField);
+                    db.WriteCodeAndPathToDB(type,result_bincode,result,filePathField);
                     BufferedImage bufferedImage = ImageIO.read(new File(filePathField));
 
-                    GUI.Barcode_View = BarCode_Viewer_Panel(0,bufferedImage,result);
+                    GUI.Barcode_View = BarCode_Viewer_Panel(type,bufferedImage,result);
                     GUI.BarCode_List_Panel = List_Of_BarCodes();
                     Validator();
 
