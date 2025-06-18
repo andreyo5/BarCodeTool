@@ -63,7 +63,7 @@ public class DataBase{
     }
     public int getCount() throws SQLException{
         Connection conn = this.ConnectToDB();
-        PreparedStatement pstmt = conn.prepareStatement("select * from BarCodes");
+        PreparedStatement pstmt = conn.prepareStatement("select count(*) from BarCodes");
         ResultSet rs = pstmt.executeQuery();
         rs.next();
         int count = rs.getInt(1);
